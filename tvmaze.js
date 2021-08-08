@@ -5,21 +5,10 @@
 
 /** Search Shows
  *    - given a search term, search for tv shows that
- *      match that query.  The function is async show it
- *       will be returning a promise.
- *
- *   - Returns an array of objects. Each object should include
- *     following show information:
- *    {
-        id: <show id>,
-        name: <show name>,
-        summary: <show summary>,
-        image: <an image from the show data, or a default imege if no image exists, (image isn't needed until later)>
-      }
+ *      match that query.
  */
 async function searchShows(query) {
-  // TODO: Make an ajax request to the searchShows api.  Remove
-  // hard coded data.
+  // Make an ajax request to the searchShows api.
   const response = await axios.get('http://api.tvmaze.com/search/shows', { params: { q: query }});
   const shows = response.data;
   const showsArray = [];
@@ -46,7 +35,6 @@ async function searchShows(query) {
 }
 
 
-
 /** Populate shows list:
  *     - given list of shows, add shows to DOM
  */
@@ -54,6 +42,7 @@ async function searchShows(query) {
 function populateShows(shows) {
   const $showsList = $("#shows-list");
   $showsList.empty();
+  let count = 1;
 
   for (let show of shows) {
     let $item = $(
@@ -63,12 +52,15 @@ function populateShows(shows) {
              <h5 class="card-title">${show.name}</h5>
              <img class="card-img-top" src="${show.image}">
              <p class="card-text">${show.summary}</p>
+             <button class="episode-button" id="${count}">Episodes</button>
            </div>
          </div>
        </div>
       `);
 
     $showsList.append($item);
+
+    count++;
   }
 }
 
@@ -97,9 +89,51 @@ $("#search-form").on("submit", async function handleSearch (evt) {
  */
 
 async function getEpisodes(id) {
-  // TODO: get episodes from tvmaze
-  //       you can get this by making GET request to
-  //       http://api.tvmaze.com/shows/SHOW-ID-HERE/episodes
+  // get episodes from tvmaze
+  const response = await axios.get(`http://api.tvmaze.com/shows/${id}/episodes`);
+  const episodes = response.data;
+  const episodeArray = [];
 
-  // TODO: return array-of-episode-info, as described in docstring above
+  // return array-of-episode-info, as described in docstring above
+  for (let episode of episodes) {
+    episodeArray.push({
+      id: episode.id,
+      name: episode.name,
+      season: episode.season,
+      number: episode.number
+    });
+  }
+
+  return episodeArray;
 }
+
+
+// given a list of episodes, add to DOM
+function populateEpisodes(episodes) {
+  for (let episode of episodes) {
+    let $item = $(
+      `<li>${episode.name} (season ${episode.season}, episode ${episode.number})</li>`
+    )
+
+    $("#episodes-list").append($item);
+  }
+}
+
+
+/** Handle episode button push.
+ *  - accept event target and find show ID.
+ *  - populate episode list
+ */
+
+$("#shows-list").on("click", "button", async function handleEpisodes(evt) {
+  $("#episodes-list").empty();
+
+  let id = evt.target.closest(".Show").getAttribute('data-show-id');
+
+  let episodes = await getEpisodes(id);
+
+  populateEpisodes(episodes);
+
+  $("#episodes-area").show();
+  
+});
